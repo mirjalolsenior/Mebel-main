@@ -19,9 +19,10 @@ import {
 import { BarChart3, Trash2, FileText } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
+import { MonthlyAnalytics } from "./monthly-analytics"
 
 export function HisobotlarModule() {
-  const [activeView, setActiveView] = useState<"umumiy" | "detalli">("umumiy")
+  const [activeView, setActiveView] = useState<"oylik" | "umumiy">("oylik")
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [isClearing, setIsClearing] = useState(false)
 
@@ -58,60 +59,64 @@ export function HisobotlarModule() {
 
   return (
     <div className="space-y-6">
-      <HisobotlarStats refreshTrigger={refreshTrigger} />
-
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button
-            variant={activeView === "umumiy" ? "default" : "outline"}
-            onClick={() => setActiveView("umumiy")}
-            className="flex items-center gap-2"
-          >
-            <BarChart3 className="h-4 w-4" />
-            Umumiy hisobotlar
-          </Button>
-          <Button
-            variant={activeView === "detalli" ? "default" : "outline"}
-            onClick={() => setActiveView("detalli")}
-            className="flex items-center gap-2"
-          >
-            <FileText className="h-4 w-4" />
-            Detalli hisobotlar
-          </Button>
-        </div>
-
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="destructive" className="flex items-center gap-2">
-              <Trash2 className="h-4 w-4" />
-              Hisobotlarni tozalash
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Hisobotlarni tozalash</AlertDialogTitle>
-              <AlertDialogDescription>
-                Bu amal barcha hisobotlar va tarixiy ma'lumotlarni o'chirib tashlaydi. Bu amalni bekor qilib bo'lmaydi.
-                Davom etishni xohlaysizmi?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Bekor qilish</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleClearReports}
-                disabled={isClearing}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {isClearing ? "Tozalanmoqda..." : "Ha, tozalash"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+      <div className="flex items-center gap-2">
+        <Button
+          variant={activeView === "oylik" ? "default" : "outline"}
+          onClick={() => setActiveView("oylik")}
+          className="flex items-center gap-2"
+        >
+          <BarChart3 className="h-4 w-4" />
+          Oylik tahlil
+        </Button>
+        <Button
+          variant={activeView === "umumiy" ? "default" : "outline"}
+          onClick={() => setActiveView("umumiy")}
+          className="flex items-center gap-2"
+        >
+          <FileText className="h-4 w-4" />
+          Umumiy hisobotlar
+        </Button>
       </div>
 
-      <HisobotlarFilters onFilterChange={handleRefresh} />
+      {activeView === "oylik" && <MonthlyAnalytics />}
 
-      <HisobotlarList viewType={activeView} refreshTrigger={refreshTrigger} />
+      {/* Existing umumiy view code */}
+      {activeView === "umumiy" && (
+        <>
+          <HisobotlarStats refreshTrigger={refreshTrigger} />
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" className="flex items-center gap-2">
+                <Trash2 className="h-4 w-4" />
+                Hisobotlarni tozalash
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Hisobotlarni tozalash</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Bu amal barcha hisobotlar va tarixiy ma'lumotlarni o'chirib tashlaydi. Bu amalni bekor qilib
+                  bo'lmaydi. Davom etishni xohlaysizmi?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Bekor qilish</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleClearReports}
+                  disabled={isClearing}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {isClearing ? "Tozalanmoqda..." : "Ha, tozalash"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <HisobotlarFilters onFilterChange={handleRefresh} />
+          <HisobotlarList viewType="umumiy" refreshTrigger={refreshTrigger} />
+        </>
+      )}
     </div>
   )
 }

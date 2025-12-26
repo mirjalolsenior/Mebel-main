@@ -3,24 +3,30 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Bell, BellOff, Smartphone, CheckCircle, AlertCircle } from "lucide-react"
+import { Bell, BellOff, Smartphone, CheckCircle, AlertCircle, Phone } from "lucide-react"
 import { useNotificationMonitor } from "@/lib/hooks/useNotificationMonitor"
+import { usePWA } from "./pwa-provider"
 
 export function NotificationManager() {
   const [permission, setPermission] = useState<NotificationPermission>("default")
   const [isSupported, setIsSupported] = useState(false)
   const [isInstallable, setIsInstallable] = useState(false)
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [isPushSupported, setIsPushSupported] = useState(false)
+  const [isSubscribed, setIsSubscribed] = useState(false)
+  const [subscriptionError, setSubscriptionError] = useState<string | null>(null)
+  const { subscribeToPush, isPushSupported: pwaPushSupported, isSubscribed: isPushSubscribed, platform } = usePWA()
 
   useEffect(() => {
-    // Check if notifications are supported
     setIsSupported("Notification" in window)
 
     if ("Notification" in window) {
       setPermission(Notification.permission)
     }
 
-    // Listen for PWA install prompt
+    setIsPushSupported("serviceWorker" in navigator && "PushManager" in window)
+    setIsSubscribed(isPushSubscribed)
+
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault()
       setDeferredPrompt(e)
@@ -32,7 +38,7 @@ export function NotificationManager() {
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt)
     }
-  }, [])
+  }, [isPushSubscribed])
 
   useNotificationMonitor({
     checkInterval: 5 * 60 * 1000,
@@ -43,14 +49,24 @@ export function NotificationManager() {
     if (!isSupported) return
 
     try {
+      setSubscriptionError(null)
       const permission = await Notification.requestPermission()
       setPermission(permission)
 
       if (permission === "granted") {
-        // Show success notification
+        if (isPushSupported) {
+          try {
+            await subscribeToPush()
+            setIsSubscribed(true)
+          } catch (error: any) {
+            setSubscriptionError(error.message || "Failed to subscribe to push notifications")
+            console.error("[v0] Push subscription error:", error)
+          }
+        }
+
         new Notification("Sherdor Mebel", {
           body: "Bildirishnomalar muvaffaqiyatli yoqildi!",
-          icon: "/icon-192.png",
+          icon: "/icon-192.jpg",
         })
       }
     } catch (error) {
@@ -74,8 +90,8 @@ export function NotificationManager() {
     if (permission === "granted") {
       new Notification("Test Bildirishnoma", {
         body: "Bu test bildirishnomasi. Tizim to'g'ri ishlayapti!",
-        icon: "/icon-192.png",
-        badge: "/icon-192.png",
+        icon: "/icon-192.jpg",
+        badge: "/icon-192.jpg",
       })
     }
   }
@@ -86,8 +102,8 @@ export function NotificationManager() {
         () => {
           new Notification(title, {
             body: message,
-            icon: "/icon-192.png",
-            badge: "/icon-192.png",
+            icon: "/icon-192.jpg",
+            badge: "/icon-192.jpg",
             vibrate: [100, 50, 100],
           })
         },
@@ -98,6 +114,37 @@ export function NotificationManager() {
 
   return (
     <div className="space-y-6">
+      {/* Device & Platform Info */}
+      <Card className="glass-card animate-slideIn">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Phone className="w-5 h-5" />
+            Qurilma ma'lumoti
+          </CardTitle>
+          <CardDescription>Sizning qurilmaning xususiyatlari</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Platform:</span>
+              <span className="font-medium capitalize">{platform === "unknown" ? "Aniqlanmadi" : platform}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Push API:</span>
+              <span className="font-medium">
+                {isPushSupported ? "Qo'llab-quvvatlangan ✓" : "Qo'llab-quvvatlanmadi"}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Push obunalik:</span>
+              <span className={`font-medium ${isSubscribed ? "text-green-600" : "text-red-600"}`}>
+                {isSubscribed ? "Faol ✓" : "Nofaol"}
+              </span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* PWA Status */}
       <Card className="glass-card animate-slideIn">
         <CardHeader>
@@ -121,9 +168,15 @@ export function NotificationManager() {
               <CheckCircle className="w-4 h-4 text-green-500" />
               <span className="text-sm">HTTPS protokoli</span>
             </div>
-            <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <AlertCircle className="w-4 h-4 text-blue-500" />
-              <span className="text-sm">O'rnatish tayyor</span>
+            <div
+              className={`flex items-center space-x-3 p-3 rounded-lg border ${isPushSupported ? "bg-green-50 border-green-200" : "bg-yellow-50 border-yellow-200"}`}
+            >
+              {isPushSupported ? (
+                <CheckCircle className="w-4 h-4 text-green-500" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-yellow-500" />
+              )}
+              <span className="text-sm">{isPushSupported ? "Web Push API" : "Push API (cheklangan)"}</span>
             </div>
           </div>
         </CardContent>
@@ -168,6 +221,19 @@ export function NotificationManager() {
             </p>
           ) : (
             <>
+              {permission === "denied" && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                  <strong>Bildirishnomalar o'chirilgan:</strong>
+                  {platform === "ios" ? (
+                    <p className="mt-1">
+                      iOS: Sozlamalar &gt; Bildirishnomalar &gt; Sherdor Mebel &gt; Ruxsatni yoqing
+                    </p>
+                  ) : (
+                    <p className="mt-1">Brauzer sozlamalarida bildirishnomalarni qayta yoqib ko'ring</p>
+                  )}
+                </div>
+              )}
+
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">
                   Holat:{" "}
@@ -186,9 +252,16 @@ export function NotificationManager() {
               )}
 
               {permission === "granted" && (
-                <Button onClick={sendTestNotification} variant="outline" className="w-full bg-transparent">
-                  Test bildirishnoma yuborish
-                </Button>
+                <>
+                  {subscriptionError && (
+                    <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-700">
+                      <strong>Obunalik xatosi:</strong> {subscriptionError}
+                    </div>
+                  )}
+                  <Button onClick={sendTestNotification} variant="outline" className="w-full bg-transparent">
+                    Test bildirishnoma yuborish
+                  </Button>
+                </>
               )}
             </>
           )}

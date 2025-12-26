@@ -14,7 +14,8 @@ const robotoMono = Roboto_Mono({ subsets: ["latin", "cyrillic"], variable: "--fo
 export const metadata: Metadata = {
   title: "Sherdor Mebel - Biznes boshqaruv tizimi",
   description: "Sherdor Mebel kompaniyasi uchun biznes boshqaruv tizimi",
-  manifest: "manifest.json",
+  generator: "v0.app",
+  manifest: "/manifest.json",
   keywords: ["sherdor", "mebel", "biznes", "boshqaruv", "tizim", "furniture", "business", "management"],
   authors: [{ name: "Sherdor Mebel" }],
   creator: "Sherdor Mebel",
@@ -27,7 +28,7 @@ export const metadata: Metadata = {
   icons: {
     icon: "/icon-192.jpg",
     shortcut: "/icon-192.jpg",
-    apple: "/apple-icon.png",
+    apple: "/icon-192.jpg",
   },
   appleWebApp: {
     capable: true,
@@ -51,9 +52,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-TileColor" content="#6366f1" />
         <meta name="msapplication-tap-highlight" content="no" />
-        <link rel="apple-touch-icon" href="/apple-icon.png" />
-        <link rel="icon" href="/icon-192.jpg" sizes="192x192" type="image/jpeg" />
-        <link rel="shortcut icon" href="/icon-192.jpg" />
+        <link rel="apple-touch-icon" href="/icon-192.jpg" />
       </head>
       <body className={`font-sans ${inter.variable} ${robotoMono.variable} bg-background min-h-screen`}>
         <PWAProvider>
